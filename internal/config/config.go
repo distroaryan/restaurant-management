@@ -14,7 +14,7 @@ type Config struct {
 	MongoURI string `koanf:"mongo_uri"`
 }
 
-func Loand() *Config {
+func Load() *Config {
 	k := koanf.New(".")
 
 	err := k.Load(env.Provider("APP_", ".", func(s string) string {
