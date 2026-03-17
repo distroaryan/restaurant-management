@@ -11,30 +11,30 @@ func RegisterRoutes(r *gin.Engine, handler *handler.Handler) {
 	// Menus
 	menus := v1.Group("/menus")
 	{
-		menus.GET("", handler.MenuHandler.GetAllMenus)
+		menus.GET("", handler.Menu.GetAllMenus)
 	}
 
 	// Foods
 	foods := v1.Group("/foods")
 	{
-		foods.GET("", handler.FoodHandler.GetAllFoods)
-		foods.GET("/:foodId", handler.FoodHandler.GetFoodById)
-		foods.GET("/:menuId", handler.FoodHandler.GetFoodByMenu)
+		foods.GET("", handler.Food.GetAllFoods)
+		foods.GET("/:foodId", handler.Food.GetFoodById)
+		foods.GET("/menu/:menuId", handler.Food.GetFoodByMenu)
 	}
 
 	// Tables
 	tables := v1.Group("/tables")
 	{
-		tables.GET("", handler.TableHandler.GetAllTables)
-		tables.GET("/:tableId", handler.TableHandler.GetTableById)
-		tables.POST("book-seats/:tableId", handler.TableHandler.BookSeats)
-		tables.POST("releaseSeats/:tableId", handler.TableHandler.ReleaseSeats)
+		tables.GET("", handler.Table.GetAllTables)
+		tables.GET("/:tableId", handler.Table.GetTableById)
+		tables.POST("book-seats/:tableId", handler.Table.BookSeats)
+		tables.POST("releaseSeats/:tableId", handler.Table.ReleaseSeats)
 	}
 
 	// Order
 	orders := v1.Group("/orders")
 	{
-		orders.GET("/:orderId", handler.OrderHandler.GetOrderById)
-		orders.POST("/create-order", handler.OrderHandler.CreateOrder)
+		orders.GET("/:orderId", handler.Order.GetOrderById)
+		orders.POST("/create-order", handler.Order.CreateOrder)
 	}
 }

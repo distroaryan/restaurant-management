@@ -26,11 +26,11 @@ type createOrderRequest struct {
 	Items   []orderItemRequest `json:"items"    binding:"required,min=1"`
 }
 
-func NewOrderHandler(orderRepo *repository.OrderRepository, tableRepo *repository.TableRepository, foodRepo *repository.FoodRepository) *OrderHandler {
+func NewOrderHandler(repository *repository.Repository) *OrderHandler {
 	return &OrderHandler{
-		orderRepo: orderRepo,
-		tableRepo: tableRepo,
-		foodRepo:  foodRepo,
+		orderRepo: repository.Order,
+		tableRepo: repository.Table,
+		foodRepo:  repository.Food,
 	}
 }
 
@@ -57,6 +57,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	table, err := h.tableRepo.GetTableById(c.Request.Context(), req.TableID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Wrong tableId recieved"})
+		return
 	}
 
 	food_items := len(req.Items)

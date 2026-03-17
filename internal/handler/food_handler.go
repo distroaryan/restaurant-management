@@ -12,9 +12,9 @@ type FoodHandler struct {
 	foodRepo *repository.FoodRepository
 }
 
-func NewFoodHandler(foodRepo *repository.FoodRepository) *FoodHandler {
+func NewFoodHandler(repository *repository.Repository) *FoodHandler {
 	return &FoodHandler{
-		foodRepo: foodRepo,
+		foodRepo: repository.Food,
 	}
 }
 

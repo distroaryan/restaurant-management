@@ -12,9 +12,9 @@ type MenuHandler struct {
 	menuRepo *repository.MenuRepository
 }
 
-func NewMenuHandler(menuRepo *repository.MenuRepository) *MenuHandler {
+func NewMenuHandler(repository *repository.Repository) *MenuHandler {
 	return &MenuHandler{
-		menuRepo: menuRepo,
+		menuRepo: repository.Menu,
 	}
 }
 

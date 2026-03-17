@@ -12,9 +12,9 @@ type TableHandler struct {
 	tableRepo *repository.TableRepository
 }
 
-func NewTableRepositroy(tableRepo *repository.TableRepository) *TableHandler {
+func NewTableRepositroy(repository *repository.Repository) *TableHandler {
 	return &TableHandler{
-		tableRepo: tableRepo,
+		tableRepo: repository.Table,
 	}
 }
 

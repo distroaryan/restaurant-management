@@ -1,8 +1,21 @@
 package handler
 
+import (
+	"github.com/distroaryan/restaurant-management/internal/repository"
+)
+
 type Handler struct {
-	FoodHandler FoodHandler
-	MenuHandler MenuHandler
-	OrderHandler OrderHandler
-	TableHandler TableHandler
+	Food  *FoodHandler
+	Menu  *MenuHandler
+	Order *OrderHandler
+	Table *TableHandler
+}
+
+func NewHandler(repository *repository.Repository) *Handler {
+	return &Handler{
+		Food: NewFoodHandler(repository),
+		Menu: NewMenuHandler(repository),
+		Order: NewOrderHandler(repository),
+		Table: NewTableRepositroy(repository),
+	}
 }
