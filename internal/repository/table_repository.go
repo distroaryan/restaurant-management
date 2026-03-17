@@ -50,26 +50,6 @@ func (r *TableRepository) GetTableById(ctx context.Context, id string) (*models.
 	return &table, nil 
 }
 
-func (r *TableRepository) GetTableByName(ctx context.Context, name string) ([]*models.Table, error) {
-	objectId, err := bson.ObjectIDFromHex(name)
-	if err != nil {
-		return nil, err 
-	}
-	filter := bson.M{"name": objectId}
-	var tables []*models.Table 
-
-	cursor, err := r.collection.Find(ctx, filter)
-	if err != nil {
-		return nil, err 
-	}
-	defer cursor.Close(ctx)
-
-	if err := cursor.All(ctx, &tables); err != nil {
-		return nil, err 
-	}
-	return tables, nil 
-}
-
 func (r *TableRepository) GetAllTables(ctx context.Context) ([]*models.Table, error) {
 	filter := bson.M{}
 	cursor, err := r.collection.Find(ctx, filter)
@@ -100,7 +80,7 @@ func (r *TableRepository) BookSeats(ctx context.Context, tableId string, seats i
 		"_id": objectId,
 		"$expr": bson.M{
 			"$gte": []interface{}{
-				bson.M{"subtract": []string{"$capacity", "$reserved_seats"}},
+				bson.M{"$subtract": []string{"$capacity", "$reserved_seats"}},
 				seats, 
 			},
 		},

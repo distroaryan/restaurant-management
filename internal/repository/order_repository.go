@@ -21,9 +21,12 @@ func NewOrderRepository(db *database.DBEngine) *OrderRepository {
 
 func (r *OrderRepository) CreateOrder(ctx context.Context, order *models.Order) error {
 	order.Status = models.OrderStatusPending
-	_ , err := r.collection.InsertOne(ctx, order)
+	resp , err := r.collection.InsertOne(ctx, order)
 	if err != nil {
 		return err 
+	}
+	if oid, ok := resp.InsertedID.(bson.ObjectID); ok {
+		order.ID = oid 
 	}
 	return nil 
 }
@@ -71,7 +74,7 @@ func (r *OrderRepository) UpdateOrderStatus(ctx context.Context, orderId string,
 	}
 	filter := bson.M{"_id": objectId}
 	update := bson.M{
-		"$set": bson.M{"stauts": orderStatus},
+		"$set": bson.M{"status": orderStatus},
 	}
 
 	_, err = r.collection.UpdateOne(ctx, filter, update)
