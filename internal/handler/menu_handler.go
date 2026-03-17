@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/distroaryan/restaurant-management/internal/errs"
 	"github.com/distroaryan/restaurant-management/internal/repository"
 	"github.com/gin-gonic/gin"
 )
@@ -20,9 +21,7 @@ func NewMenuHandler(menuRepo *repository.MenuRepository) *MenuHandler {
 func (h *MenuHandler) GetAllMenus(c *gin.Context) {
 	menus, err := h.menuRepo.GetAllMenu(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to fetch menu",
-		})
+		errs.InternalServerError(c, "Failed to fetch menu")
 		return
 	}
 	c.JSON(http.StatusOK, menus)

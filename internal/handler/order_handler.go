@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/distroaryan/restaurant-management/internal/errs"
 	"github.com/distroaryan/restaurant-management/internal/models"
 	"github.com/distroaryan/restaurant-management/internal/repository"
 	"github.com/gin-gonic/gin"
@@ -38,9 +39,7 @@ func (h *OrderHandler) GetOrderById(c *gin.Context) {
 
 	order, err := h.orderRepo.GetOrderById(c.Request.Context(), orderID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to fetch order",
-		})
+		errs.InternalServerError(c, "Failed to fetch order")
 		return
 	}
 	c.JSON(http.StatusOK, order)
@@ -116,9 +115,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 	err = h.orderRepo.CreateOrder(c.Request.Context(), order)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to fetch order",
-		})
+		errs.InternalServerError(c, "Failed to fetch order")
 		return
 	}
 	c.JSON(http.StatusOK, order)

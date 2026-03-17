@@ -12,9 +12,9 @@ import (
 
 	"github.com/distroaryan/restaurant-management/internal/config"
 	"github.com/distroaryan/restaurant-management/internal/database"
+	"github.com/distroaryan/restaurant-management/internal/handler"
 	"github.com/distroaryan/restaurant-management/internal/logger"
-	"github.com/distroaryan/restaurant-management/internal/middleware"
-	"github.com/gin-gonic/gin"
+	"github.com/distroaryan/restaurant-management/internal/server"
 )
 
 func main() {
@@ -27,34 +27,12 @@ func main() {
 	// 2. INITIALIZE MONGODB CONNECTION
 	db := database.Connect(cfg.MongoURI)
 
-	if cfg.Env == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
-	router := gin.New()
-
-	router.Use(middleware.Logger())
-	router.Use(middleware.Recovery())
-
-	router.GET("/ping", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-			"status": "healthy",
-		})
-	})
-
-	// GRACEFULL SHUTDOWN
-	server := &http.Server{
-		Addr: fmt.Sprintf(":%d", cfg.Port),
-		Handler: router,
-	}
+	appHandler := &handler.Handler{} // Note: Repositories and handlers should be wired up properly here if required, but for now we just pass a handler struct based on existing structure
+	appServer := server.NewServer(cfg, appHandler)
 
 	go func() {
-		slog.Info("Server is listening and serving", slog.Int("port", cfg.Port))
-
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := appServer.Start(); err != nil {
 			slog.Error("Failed to listen and server", slog.String("error", err.Error()))
-
 			os.Exit(1)
 		}
 	}()
@@ -68,7 +46,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 	defer cancel()
 
-	if err := server.Shutdown(ctx); err != nil {
+	if err := appServer.Shutdown(ctx); err != nil {
 		slog.Error("Server forced to shutdown", slog.String("Error", err.Error()))
 	}
 

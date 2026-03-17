@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/distroaryan/restaurant-management/internal/errs"
 	"github.com/distroaryan/restaurant-management/internal/repository"
 	"github.com/gin-gonic/gin"
 )
@@ -24,9 +25,7 @@ type seatRequest struct {
 func (h *TableHandler) GetAllTables(c *gin.Context) {
 	tables, err := h.tableRepo.GetAllTables(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to fetch tables",
-		})
+		errs.InternalServerError(c, "Failed to fetch tables")
 		return
 	}
 	c.JSON(http.StatusOK, tables)
@@ -37,9 +36,7 @@ func (h *TableHandler) GetTableById(c *gin.Context) {
 
 	table, err := h.tableRepo.GetTableById(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to fetch tables",
-		})
+		errs.InternalServerError(c, "Failed to fetch tables")
 		return
 	}
 	c.JSON(http.StatusOK, table)
@@ -57,9 +54,7 @@ func (h *TableHandler) BookSeats(c *gin.Context) {
 
 	err := h.tableRepo.BookSeats(c.Request.Context(), tableId, req.Seats)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to fetch tables",
-		})
+		errs.InternalServerError(c, "Failed to fetch tables")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true})
@@ -77,9 +72,7 @@ func (h *TableHandler) ReleaseSeats(c *gin.Context) {
 
 	err := h.tableRepo.ReleaseSeats(c.Request.Context(), tableId, req.Seats)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to fetch tables",
-		})
+		errs.InternalServerError(c, "Failed to fetch tables")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true})
