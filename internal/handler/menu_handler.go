@@ -23,6 +23,7 @@ func (h *MenuHandler) GetAllMenus(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to fetch menu",
 		})
+		return
 	}
 	c.JSON(http.StatusOK, menus)
 }
