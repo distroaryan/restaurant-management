@@ -3,6 +3,8 @@ package integration
 import (
 	"context"
 	"os"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/distroaryan/restaurant-management/internal/database"
@@ -262,6 +264,34 @@ func TestTableRepository(t *testing.T) {
 	assert.Empty(t, tables)
 }
 
-func TestSequentialSeatBooking(t *testing.T) {
+func TestConcurrentSeatBooking(t *testing.T) {
 	clearTables(t, testDb)
+
+	ctx := context.Background()
+	tableRepo := repository.NewTableRepositroy(testDb)
+
+	table := seedTable(t, tableRepo, "TableOne", 5, 0)
+
+	// Testing SeatBooking concurrency by simulatenously attempting to book 5 seats
+	users := 100
+	var wg sync.WaitGroup
+	var successCount atomic.Int32 
+
+	for range users {
+		wg.Add(1)
+		go func(){
+			defer wg.Done()
+			err := tableRepo.BookSeats(ctx, table.ID.Hex(), 5)
+			if err == nil {
+				successCount.Add(1)
+			}
+		}()
+	}
+	wg.Wait()
+
+	assert.Equal(t, int32(1), successCount.Load())
+
+	finalState, err := tableRepo.GetTableById(ctx, table.ID.Hex())
+	assert.NoError(t, err)
+	assert.Equal(t, 5, finalState.ReservedSeats)
 }
