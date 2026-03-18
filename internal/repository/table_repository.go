@@ -102,6 +102,7 @@ func (r *TableRepository) ReleaseTable(ctx context.Context, tableId string) erro
 
 	filter := bson.M{
 		"_id": objectId,
+		"status": models.TableStatusFull,
 	}
 
 	update := bson.M{
@@ -118,7 +119,7 @@ func (r *TableRepository) ReleaseTable(ctx context.Context, tableId string) erro
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errors.New("table not found")
+		return errors.New("table not found or already available")
 	}
 	return nil
 }

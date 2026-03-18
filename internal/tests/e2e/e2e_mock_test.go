@@ -12,12 +12,16 @@ import (
 )
 
 func TestRestaurantEndpoints(t *testing.T) {
+	t.Log("🚀 Starting E2E Mock Test Suite...")
 	srv, cleanup := SetUpMockServer(t)
-	defer cleanup()
+	defer func() {
+		cleanup()
+		t.Log("🎉 Completed E2E Mock Test Suite!")
+	}()
 
 	token := GenerateTestToken("test-user-id")
 	requestHeaderKey := "Authorization"
-	requestHeaderValue := "Bearer " + token 
+	requestHeaderValue := "Bearer " + token
 
 	serverURL := srv.Server.URL
 	t.Run("Test Menu Routes", func(t *testing.T) {
@@ -38,7 +42,7 @@ func TestRestaurantEndpoints(t *testing.T) {
 		resp, err := http.Get(allFoodRoute)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
-		
+
 		var fetchedFoods []models.Food
 		err = json.NewDecoder(resp.Body).Decode(&fetchedFoods)
 		assert.NoError(t, err)
@@ -60,7 +64,7 @@ func TestRestaurantEndpoints(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		var fetchedSingleFood models.Food 
+		var fetchedSingleFood models.Food
 		err = json.NewDecoder(resp.Body).Decode(&fetchedSingleFood)
 		assert.NoError(t, err)
 		assert.Equal(t, srv.TestData.Foods[0], fetchedSingleFood)
@@ -77,7 +81,7 @@ func TestRestaurantEndpoints(t *testing.T) {
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
-		
+
 		var fetchedTables []models.Table
 		err = json.NewDecoder(resp.Body).Decode(&fetchedTables)
 		assert.NoError(t, err)
@@ -86,7 +90,7 @@ func TestRestaurantEndpoints(t *testing.T) {
 		specificTableRoute := serverURL + baseTableRoute + fmt.Sprintf("/%s", srv.TestData.Tables[0].ID.Hex())
 		req, err = http.NewRequest("GET", specificTableRoute, nil)
 		require.NoError(t, err)
-		req.Header.Set(requestHeaderKey,requestHeaderValue)
+		req.Header.Set(requestHeaderKey, requestHeaderValue)
 
 		resp, err = http.DefaultClient.Do(req)
 		require.NoError(t, err)
@@ -95,7 +99,99 @@ func TestRestaurantEndpoints(t *testing.T) {
 		var singleTable models.Table
 		err = json.NewDecoder(resp.Body).Decode(&singleTable)
 		assert.NoError(t, err)
-		assert.Equal(t, srv.TestData.Tables[0], singleTable) 
+		assert.Equal(t, srv.TestData.Tables[0], singleTable)
+	})
+
+	t.Run("Test Table Booking and Releasing", func(t *testing.T) {
+		baseTableRoute := "/api/v1/tables"
+		tableID := srv.TestData.Tables[0].ID.Hex()
+
+		// 1. Book the table
+		bookTableRoute := serverURL + baseTableRoute + fmt.Sprintf("/book-table/%s", tableID)
+		req, err := http.NewRequest("POST", bookTableRoute, nil)
+		require.NoError(t, err)
+		req.Header.Set(requestHeaderKey, requestHeaderValue)
+
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		resp.Body.Close()
+
+		// 2. Retrieve details and verify
+		specificTableRoute := serverURL + baseTableRoute + fmt.Sprintf("/%s", tableID)
+		req, err = http.NewRequest("GET", specificTableRoute, nil)
+		require.NoError(t, err)
+		req.Header.Set(requestHeaderKey, requestHeaderValue)
+
+		resp, err = http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var singleTable models.Table
+		err = json.NewDecoder(resp.Body).Decode(&singleTable)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		assert.Equal(t, "test-user-id", singleTable.UserID, "UserID should be set to test-user-id")
+		assert.Equal(t, models.TableStatusFull, singleTable.Status, "Table status should be FULL")
+
+		// 3. Try booking the table again
+		req, err = http.NewRequest("POST", bookTableRoute, nil)
+		require.NoError(t, err)
+		req.Header.Set(requestHeaderKey, requestHeaderValue)
+
+		resp, err = http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+		resp.Body.Close()
+
+		// 4. Release the table and verify its new status
+		releaseTableRoute := serverURL + baseTableRoute + fmt.Sprintf("/release-table/%s", tableID)
+		req, err = http.NewRequest("POST", releaseTableRoute, nil)
+		require.NoError(t, err)
+		req.Header.Set(requestHeaderKey, requestHeaderValue)
+
+		resp, err = http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+		resp.Body.Close()
+
+		// Retrieve details again to verify it is released
+		req, err = http.NewRequest("GET", specificTableRoute, nil)
+		require.NoError(t, err)
+		req.Header.Set(requestHeaderKey, requestHeaderValue)
+
+		resp, err = http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var releasedTable models.Table
+		err = json.NewDecoder(resp.Body).Decode(&releasedTable)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		assert.Empty(t, releasedTable.UserID, "UserID should be empty after releasing")
+		assert.Equal(t, models.TableStatusAvailable, releasedTable.Status, "Table status should be AVAILABLE")
+
+		// 5. Try releasing the table again (should fail)
+		req, err = http.NewRequest("POST", releaseTableRoute, nil)
+		require.NoError(t, err)
+		req.Header.Set(requestHeaderKey, requestHeaderValue)
+
+		resp, err = http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+		resp.Body.Close()
+
+		// 6. Try releasing the table of any other table (should fail)
+		releaseTableRoute = serverURL + baseTableRoute + fmt.Sprintf("/release-table/%s", srv.TestData.Tables[2].ID.Hex())
+		req, err = http.NewRequest("POST", releaseTableRoute, nil)
+		require.NoError(t, err)
+		req.Header.Set(requestHeaderKey, requestHeaderValue)
+
+		resp, err = http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	})
 
 	// t.Run("Test Table Booking and Releasing (Auth Required)", func(t *testing.T) {

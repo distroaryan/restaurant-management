@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/distroaryan/restaurant-management/internal/errs"
@@ -43,7 +44,7 @@ func (h *FoodHandler) GetFoodByMenu(c *gin.Context) {
 
 	food, err := h.foodRepo.GetFoodByMenu(c.Request.Context(), menuId)
 	if err != nil {
-		errs.InternalServerError(c, "Failed to fetch foods")
+		errs.InternalServerError(c, fmt.Sprintf("Failed to fetch foods %s", err.Error()))
 		return 
 	}
 	c.JSON(http.StatusOK, food)
