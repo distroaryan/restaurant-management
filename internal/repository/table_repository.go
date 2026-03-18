@@ -21,7 +21,6 @@ func NewTableRepositroy(db *database.Database) *TableRepository {
 }
 
 func (r *TableRepository) CreateTable(ctx context.Context, table *models.Table) error {
-	table.ReservedSeats = 0
 	table.Status = models.TableStatusAvailable
 
 	resp, err := r.collection.InsertOne(ctx, &table)
@@ -65,30 +64,23 @@ func (r *TableRepository) GetAllTables(ctx context.Context) ([]*models.Table, er
 	return tables, nil
 }
 
-// BookSeats atomically increments the reserved seats for a given table,
-// avoiding race conditions by validating that there is enough capacity
-
-func (r *TableRepository) BookSeats(ctx context.Context, tableId string, seats int) error {
+// BookTable atomically updates the table status to full and assigns it to a user
+func (r *TableRepository) BookTable(ctx context.Context, tableId string, userId string) error {
 	objectId, err := bson.ObjectIDFromHex(tableId)
 	if err != nil {
 		return err
 	}
 
-	// make sure seats are available
-	// capacity - reservedSeats >= seats
 	filter := bson.M{
 		"_id": objectId,
-		"$expr": bson.M{
-			"$gte": []interface{}{
-				bson.M{"$subtract": []string{"$capacity", "$reserved_seats"}},
-				seats,
-			},
-		},
+		"status": models.TableStatusAvailable,
 	}
 
-	// update query
 	update := bson.M{
-		"$inc": bson.M{"reserved_seats": seats},
+		"$set": bson.M{
+			"status": models.TableStatusFull,
+			"user_id": userId,
+		},
 	}
 
 	res, err := r.collection.UpdateOne(ctx, filter, update)
@@ -96,25 +88,29 @@ func (r *TableRepository) BookSeats(ctx context.Context, tableId string, seats i
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errors.New("table not found or insufficient capacity available")
+		return errors.New("table not found or already booked")
 	}
 	return nil
 }
 
-func (r *TableRepository) ReleaseSeats(ctx context.Context, tableId string, seatsToRelease int) error {
+// ReleaseTable frees a table so it can be booked again
+func (r *TableRepository) ReleaseTable(ctx context.Context, tableId string) error {
 	objectId, err := bson.ObjectIDFromHex(tableId)
 	if err != nil {
 		return err
 	}
 
-	// check reserved_seats >= seatsToRelease
 	filter := bson.M{
-		"_id":            objectId,
-		"reserved_seats": bson.M{"$gte": seatsToRelease},
+		"_id": objectId,
 	}
 
 	update := bson.M{
-		"$inc": bson.M{"reserved_seats": -seatsToRelease},
+		"$set": bson.M{
+			"status": models.TableStatusAvailable,
+		},
+		"$unset": bson.M{
+			"user_id": "",
+		},
 	}
 
 	res, err := r.collection.UpdateOne(ctx, filter, update)
@@ -122,7 +118,7 @@ func (r *TableRepository) ReleaseSeats(ctx context.Context, tableId string, seat
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return errors.New("table not found or invalid seatsToRealease sent")
+		return errors.New("table not found")
 	}
 	return nil
 }

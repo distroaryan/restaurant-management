@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"sync"
 
 	"github.com/distroaryan/restaurant-management/internal/errs"
 	"github.com/distroaryan/restaurant-management/internal/models"
@@ -22,7 +21,7 @@ type orderItemRequest struct {
 }
 
 type createOrderRequest struct {
-	TableID string             `json:"table_id" binding:"required"`
+	TableID string             `json:"table_id,omitempty"`
 	Items   []orderItemRequest `json:"items"    binding:"required,min=1"`
 }
 
@@ -53,69 +52,45 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
-	// 2. Verify the tableID
-	table, err := h.tableRepo.GetTableById(c.Request.Context(), req.TableID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Wrong tableId recieved"})
-		return
+	// 2. Setup order and verify tableID if provided
+	order := &models.Order{
+		UserID:      c.GetString("userId"),
+		Status:      models.OrderStatusPending,
 	}
 
-	food_items := len(req.Items)
-
-	type result struct {
-		err  error
-		item models.OrderItem
+	if req.TableID != "" {
+		table, err := h.tableRepo.GetTableById(c.Request.Context(), req.TableID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Wrong tableId recieved"})
+			return
+		}
+		order.TableID = table.ID
 	}
 
-	var wg sync.WaitGroup
-	results := make([]result, len(req.Items))
-	var mu sync.Mutex
-
-	for idx := range food_items {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			food, err := h.foodRepo.GetFoodById(c.Request.Context(), req.Items[idx].FoodID)
-			mu.Lock()
-			defer mu.Unlock()
-			if err != nil {
-				results[idx].err = err
-				return
-			}
-
-			results[idx] = result{
-				item: models.OrderItem{
-					FoodID:    food.ID,
-					Quantity:  req.Items[idx].Quantity,
-					UnitPrice: food.Price * float64(req.Items[idx].Quantity),
-				},
-			}
-
-		}()
-	}
-
-	wg.Wait()
-
-	totalAmount := 0
 	var orderItems []models.OrderItem
+	var totalAmount float64
 
-	for _, r := range results {
-		if r.err != nil {
+	for _, item := range req.Items {
+		food, err := h.foodRepo.GetFoodById(c.Request.Context(), item.FoodID)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "one or more food items not found"})
 			return
 		}
-		totalAmount += int(r.item.UnitPrice)
-		orderItems = append(orderItems, r.item)
+
+		unitPrice := food.Price * float64(item.Quantity)
+		totalAmount += unitPrice
+
+		orderItems = append(orderItems, models.OrderItem{
+			FoodID:    food.ID,
+			Quantity:  item.Quantity,
+			UnitPrice: unitPrice,
+		})
 	}
 
-	order := &models.Order{
-		TableID: table.ID,
-		UserID:  c.Request.Header.Get("X-User-Id"),
-		Status:  models.OrderStatusPending,
-		Items:   orderItems,
-	}
+	order.Items = orderItems
+	order.TotalAmount = totalAmount
 
-	err = h.orderRepo.CreateOrder(c.Request.Context(), order)
+	err := h.orderRepo.CreateOrder(c.Request.Context(), order)
 	if err != nil {
 		errs.InternalServerError(c, "Failed to fetch order")
 		return

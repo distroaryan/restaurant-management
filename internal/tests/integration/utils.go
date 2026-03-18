@@ -17,7 +17,7 @@ import (
 
 func clearCollection(t *testing.T, db *database.Database, name string) {
 	t.Helper()
-	err := db.Client.Database("restaurant").Collection(name).Drop(context.Background())
+	err := db.Client.Database("restaurant_test").Collection(name).Drop(context.Background())
 	require.NoError(t, err)
 }
 
@@ -75,12 +75,10 @@ func seedOrder(t *testing.T, orderRepo *repository.OrderRepository, tableId bson
 	return order
 }
 
-func seedTable(t *testing.T, tableRepo *repository.TableRepository, name string, capacity int, reservedSeats int) *models.Table {
+func seedTable(t *testing.T, tableRepo *repository.TableRepository, name string) *models.Table {
 	t.Helper()
 	table := &models.Table{
 		Name:          name,
-		Capacity:      capacity,
-		ReservedSeats: reservedSeats,
 		Status:        models.TableStatusAvailable,
 	}
 	err := tableRepo.CreateTable(context.Background(), table)

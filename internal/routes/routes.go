@@ -30,8 +30,8 @@ func RegisterRoutes(r *gin.Engine, handler *handler.Handler, cfg *config.Config)
 	{
 		tables.GET("", handler.Table.GetAllTables)
 		tables.GET("/:tableId", handler.Table.GetTableById)
-		tables.POST("book-seats/:tableId", handler.Table.BookSeats)
-		tables.POST("releaseSeats/:tableId", handler.Table.ReleaseSeats)
+		tables.POST("book-table/:tableId", handler.Table.BookTable)
+		tables.POST("release-table/:tableId", handler.Table.ReleaseTable)
 	}
 
 	// Order

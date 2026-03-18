@@ -12,9 +12,10 @@ import (
 
 type Database struct {
 	Client *mongo.Client
+	DBName string
 }
 
-func Connect(uri string) *Database {
+func Connect(uri, dbName string) *Database {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -37,6 +38,7 @@ func Connect(uri string) *Database {
 
 	return &Database{
 		Client: client,
+		DBName: dbName,
 	}
 }
 
@@ -45,7 +47,5 @@ func (db *Database) Close(ctx context.Context) error {
 }
 
 func (db *Database) GetCollection(collectionName string) *mongo.Collection {
-	// HARDCODING THE DB NAME TO "restaurant"
-	// TODO: PULL THIS FROM ENV FILE
-	return db.Client.Database("restaurant").Collection(collectionName)
+	return db.Client.Database(db.DBName).Collection(collectionName)
 }

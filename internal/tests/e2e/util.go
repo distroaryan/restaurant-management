@@ -38,9 +38,7 @@ func SetupApp(t *testing.T) (*TestApp, func()) {
 	if err != nil {
 		require.NoError(t, err)
 	}
-
-	db := database.Connect(uri)
-
+	db := database.Connect(uri, "restaurant_test")
 	r := repository.NewRepository(db)
 	h := handler.NewHandler(r)
 
@@ -90,13 +88,10 @@ func seedFood(t *testing.T, foodRepo *repository.FoodRepository, name string, pr
 	require.NoError(t, err)
 	return food
 }
-
-func seedTable(t *testing.T, tableRepo *repository.TableRepository, name string, capacity int, reservedSeats int) *models.Table {
+func seedTable(t *testing.T, tableRepo *repository.TableRepository, name string) *models.Table {
 	t.Helper()
 	table := &models.Table{
 		Name:          name,
-		Capacity:      capacity,
-		ReservedSeats: reservedSeats,
 		Status:        models.TableStatusAvailable,
 	}
 	err := tableRepo.CreateTable(context.Background(), table)

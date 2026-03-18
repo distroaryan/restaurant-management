@@ -9,13 +9,14 @@ import (
 )
 
 type Config struct {
-	Env string `koanf:"env"`
-	Port int `koanf:"port"`
-	MongoURI string `koanf:"mongo_uri"`
+	Env       string `koanf:"env"`
+	Port      int    `koanf:"port"`
+	MongoURI  string `koanf:"mongo_uri"`
+	DbName    string `koanf:"db_name"`
 	JwtSecret string `koanf:"jwt_secret"`
 }
 
-func Load() *Config {
+func Load() (*Config, error) {
 	k := koanf.New(".")
 
 	err := k.Load(env.Provider("APP_", ".", func(s string) string {
@@ -44,9 +45,13 @@ func Load() *Config {
 		cfg.MongoURI = "mongodb://127.0.0.1:27017"
 	}
 
+	if cfg.DbName == "" {
+		cfg.DbName = "restaurant"
+	}
+
 	if cfg.JwtSecret == "" {
 		cfg.JwtSecret = "secret"
 	}
 
-	return &cfg 
+	return &cfg, nil 
 }
