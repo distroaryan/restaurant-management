@@ -97,3 +97,13 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, order)
 }
+
+func (h *OrderHandler) GetOrderByUserId(c *gin.Context) {
+	userID := c.Param("userID")
+
+	orders, err := h.orderRepo.GetOrdersByUserID(c.Request.Context(), userID)
+	if err != nil {
+		errs.InternalServerError(c, "Failed to fetch order")
+	}
+	c.JSON(http.StatusOK, orders)
+}

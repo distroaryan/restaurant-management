@@ -39,6 +39,7 @@ func RegisterRoutes(r *gin.Engine, handler *handler.Handler, cfg *config.Config)
 	orders.Use(middleware.Auth(cfg))
 	{
 		orders.GET("/:orderId", handler.Order.GetOrderById)
+		orders.GET("/user/:userID", handler.Order.GetOrderByUserId)
 		orders.POST("/create-order", handler.Order.CreateOrder)
 	}
 }

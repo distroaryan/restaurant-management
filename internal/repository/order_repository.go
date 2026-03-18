@@ -46,13 +46,8 @@ func (r *OrderRepository) GetOrderById(ctx context.Context, id string) (*models.
 	return &order, nil
 }
 
-func (r *OrderRepository) GetOrdersByTable(ctx context.Context, tableId string) ([]*models.Order, error) {
-	objectId, err := bson.ObjectIDFromHex(tableId)
-	if err != nil {
-		return nil, err
-	}
-
-	filter := bson.M{"table_id": objectId}
+func (r *OrderRepository) GetOrdersByUserID(ctx context.Context, userID string) ([]*models.Order, error) {
+	filter := bson.M{"user_id": userID}
 	var orders []*models.Order
 
 	cursor, err := r.collection.Find(ctx, filter)

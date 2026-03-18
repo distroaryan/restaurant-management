@@ -173,18 +173,10 @@ func TestOrderRepository(t *testing.T) {
 		assert.Error(t, err, "should return error for invalid ObjectID string")
 	})
 
-	t.Run("Testing GetOrdersByTable method", func(t *testing.T) {
-		expectedTableOrders := []*models.Order{tableOneOrder}
-		fetchedTableOrders, err := orderRepo.GetOrdersByTable(ctx, tableOneID.Hex())
-		assert.NoError(t, err, "should not return error for valid table ID")
-		assert.Equal(t, expectedTableOrders, fetchedTableOrders, "should return orders for the specified table")
-
-		emptyTableOrders, err := orderRepo.GetOrdersByTable(ctx, bson.NewObjectID().Hex())
+	t.Run("Testing GetOrdersByUserID method", func(t *testing.T) {
+		emptyTableOrders, err := orderRepo.GetOrdersByUserID(ctx, bson.NewObjectID().Hex())
 		assert.NoError(t, err, "should not return error for non-existent table ID")
 		assert.Empty(t, emptyTableOrders, "should return empty list for table with no orders")
-
-		_, err = orderRepo.GetOrdersByTable(ctx, "invalid_id")
-		assert.Error(t, err, "should return error for invalid table ObjectID string")
 	})
 
 	t.Run("Testing UpdateOrderStatus method", func(t *testing.T) {
