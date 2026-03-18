@@ -2,31 +2,36 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/distroaryan/restaurant-management/internal/config"
 	"github.com/distroaryan/restaurant-management/internal/database"
 	"github.com/distroaryan/restaurant-management/internal/handler"
+	"github.com/distroaryan/restaurant-management/internal/middleware"
 	"github.com/distroaryan/restaurant-management/internal/models"
 	"github.com/distroaryan/restaurant-management/internal/repository"
 	"github.com/distroaryan/restaurant-management/internal/routes"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go/modules/mongodb"
-	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-type TestApp struct {
-	Server    *httptest.Server
-	DB        *database.Database
-	MenuRepo  *repository.MenuRepository
-	FoodRepo  *repository.FoodRepository
-	TableRepo *repository.TableRepository
-	OrderRepo *repository.OrderRepository
+type TestData struct {
+	Menus  []models.Menu
+	Foods  []models.Food
+	Tables []models.Table
 }
 
-func SetupApp(t *testing.T) (*TestApp, func()) {
+type Server struct {
+	Server     *httptest.Server
+	Repository *repository.Repository
+	TestData   TestData
+}
+
+func SetUpMockServer(t *testing.T) (*Server, func()) {
 	ctx := context.Background()
 
 	container, err := mongodb.Run(ctx, "mongo:7")
@@ -44,6 +49,8 @@ func SetupApp(t *testing.T) (*TestApp, func()) {
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
+	router.Use(middleware.Logger())
+	router.Use(middleware.Recovery())
 	cfg := &config.Config{JwtSecret: "secret"}
 	routes.RegisterRoutes(router, h, cfg)
 
@@ -55,46 +62,61 @@ func SetupApp(t *testing.T) (*TestApp, func()) {
 		container.Terminate(ctx)
 	}
 
-	return &TestApp{
-		Server:    testServer,
-		DB:        db,
-		MenuRepo:  r.Menu,
-		FoodRepo:  r.Food,
-		TableRepo: r.Table,
-		OrderRepo: r.Order,
-	}, cleanup
-}
-
-func seedMenu(t *testing.T, menuRepo *repository.MenuRepository, name, description string) *models.Menu {
-	t.Helper()
-	menu := &models.Menu{
-		Name:        name,
-		Description: description,
+	app := &Server{
+		Server:     testServer,
+		Repository: r,
 	}
 
-	err := menuRepo.CreateMenu(context.Background(), menu)
-	require.NoError(t, err)
-	return menu
+	app.TestData = seedDatabase(t, app)
+
+	return app, cleanup
 }
 
-func seedFood(t *testing.T, foodRepo *repository.FoodRepository, name string, price int, menuId bson.ObjectID) *models.Food {
+func seedDatabase(t *testing.T, s *Server) TestData {
 	t.Helper()
-	food := &models.Food{
-		Name:   name,
-		Price:  float64(price),
-		MenuID: menuId,
+	var data TestData
+
+	// Seed 2 Menus
+	for i := range 10 {
+		menu := &models.Menu{
+			Name:        fmt.Sprintf("Menu %d", i),
+			Description: fmt.Sprintf("Description %d", i),
+		}
+		err := s.Repository.Menu.CreateMenu(context.Background(), menu)
+		require.NoError(t, err)
+		data.Menus = append(data.Menus, *menu)
 	}
-	err := foodRepo.CreateFood(context.Background(), food)
-	require.NoError(t, err)
-	return food
+
+	// Seed 50 Foods for first Menu
+	for i := range 50 {
+		food := &models.Food{
+			Name:   fmt.Sprintf("Food %d", i),
+			Price:  float64(10 + i),
+			MenuID: data.Menus[0].ID,
+		}
+		err := s.Repository.Food.CreateFood(context.Background(), food)
+		require.NoError(t, err)
+		data.Foods = append(data.Foods, *food)
+	}
+
+	// Seed 10 Tables
+	for i := range 10 {
+		table := &models.Table{
+			Name:   fmt.Sprintf("Table %d", i),
+			Status: models.TableStatusAvailable,
+		}
+		err := s.Repository.Table.CreateTable(context.Background(), table)
+		require.NoError(t, err)
+		data.Tables = append(data.Tables, *table)
+	}
+
+	return data
 }
-func seedTable(t *testing.T, tableRepo *repository.TableRepository, name string) *models.Table {
-	t.Helper()
-	table := &models.Table{
-		Name:          name,
-		Status:        models.TableStatusAvailable,
-	}
-	err := tableRepo.CreateTable(context.Background(), table)
-	require.NoError(t, err)
-	return table
+
+func GenerateTestToken(userId string) string {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userId": userId,
+	})
+	tokenString, _ := token.SignedString([]byte("secret"))
+	return tokenString
 }
