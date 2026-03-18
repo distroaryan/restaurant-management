@@ -35,7 +35,7 @@ func NewServer(cfg *config.Config, h *handler.Handler) *Server {
 		})
 	})
 
-	routes.RegisterRoutes(router, h)
+	routes.RegisterRoutes(router, h, cfg)
 
 	return &Server{
 		httpServer: &http.Server{

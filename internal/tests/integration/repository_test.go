@@ -16,10 +16,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-var testDb *database.DBEngine
+var testDb *database.Database
 
 // ----------------------------------------------------------------
-// TestMain - one container for entire test suites 
+// TestMain - one container for entire test suites
 // ----------------------------------------------------------------
 
 func TestMain(m *testing.M) {
@@ -54,11 +54,11 @@ func TestMenuRepository(t *testing.T) {
 
 	menuRepo := repository.NewMenuRepository(testDb)
 	ctx := context.Background()
-	
+
 	// Testing GetMenuById method
 	expected_breakfast := seedMenu(t, menuRepo, "Breakfast", "Morning Meals")
 
-	actual_breakfast ,err := menuRepo.GetMenuById(context.Background(), expected_breakfast.ID.Hex())
+	actual_breakfast, err := menuRepo.GetMenuById(context.Background(), expected_breakfast.ID.Hex())
 	assert.NoError(t, err)
 	assert.Equal(t, expected_breakfast, actual_breakfast)
 
@@ -72,7 +72,7 @@ func TestMenuRepository(t *testing.T) {
 	// Testing GetAllMenu method
 	expected_lunch := seedMenu(t, menuRepo, "Lunch", "Lunch meals")
 	expected_dinner := seedMenu(t, menuRepo, "Dinner", "Dinner meals")
-	
+
 	expected_menus := []*models.Menu{expected_breakfast, expected_lunch, expected_dinner}
 
 	actual_menus, err := menuRepo.GetAllMenu(ctx)
@@ -251,7 +251,6 @@ func TestTableRepository(t *testing.T) {
 	err = tableRepo.ReleaseSeats(ctx, "invalid-mongo-id", 10)
 	assert.Error(t, err)
 
-
 	// Testing GetAllTables method
 	expectedTables := []*models.Table{tableOne, tableTwo}
 	tables, err := tableRepo.GetAllTables(ctx)
@@ -275,11 +274,11 @@ func TestConcurrentSeatBooking(t *testing.T) {
 	// Testing SeatBooking concurrency by simulatenously attempting to book 5 seats
 	users := 100
 	var wg sync.WaitGroup
-	var successCount atomic.Int32 
+	var successCount atomic.Int32
 
 	for range users {
 		wg.Add(1)
-		go func(){
+		go func() {
 			defer wg.Done()
 			err := tableRepo.BookSeats(ctx, table.ID.Hex(), 5)
 			if err == nil {

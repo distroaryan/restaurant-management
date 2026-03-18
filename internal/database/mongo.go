@@ -10,12 +10,12 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
-type DBEngine struct {
-	Client *mongo.Client 
+type Database struct {
+	Client *mongo.Client
 }
 
-func Connect(uri string) *DBEngine {
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+func Connect(uri string) *Database {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	clientOps := options.Client().ApplyURI(uri)
@@ -35,16 +35,16 @@ func Connect(uri string) *DBEngine {
 
 	slog.Info("Successfully connected to MongoDB!")
 
-	return &DBEngine{
+	return &Database{
 		Client: client,
 	}
 }
 
-func (db *DBEngine) Close(ctx context.Context) error {
+func (db *Database) Close(ctx context.Context) error {
 	return db.Client.Disconnect(ctx)
 }
 
-func (db *DBEngine) GetCollection(collectionName string) *mongo.Collection {
+func (db *Database) GetCollection(collectionName string) *mongo.Collection {
 	// HARDCODING THE DB NAME TO "restaurant"
 	// TODO: PULL THIS FROM ENV FILE
 	return db.Client.Database("restaurant").Collection(collectionName)

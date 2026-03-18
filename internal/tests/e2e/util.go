@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/distroaryan/restaurant-management/internal/config"
 	"github.com/distroaryan/restaurant-management/internal/database"
 	"github.com/distroaryan/restaurant-management/internal/handler"
 	"github.com/distroaryan/restaurant-management/internal/models"
@@ -18,7 +19,7 @@ import (
 
 type TestApp struct {
 	Server    *httptest.Server
-	DB        *database.DBEngine
+	DB        *database.Database
 	MenuRepo  *repository.MenuRepository
 	FoodRepo  *repository.FoodRepository
 	TableRepo *repository.TableRepository
@@ -30,31 +31,23 @@ func SetupApp(t *testing.T) (*TestApp, func()) {
 
 	container, err := mongodb.Run(ctx, "mongo:7")
 	if err != nil {
-		t.Fatalf("Failed to start mongodb container: %v", err)
+		require.NoError(t, err)
 	}
 
 	uri, err := container.ConnectionString(ctx)
 	if err != nil {
-		t.Fatalf("Failed to get connection string: %v", err)
+		require.NoError(t, err)
 	}
 
 	db := database.Connect(uri)
 
-	menuRepo := repository.NewMenuRepository(db)
-	foodRepo := repository.NewFoodRepository(db)
-	tableRepo := repository.NewTableRepositroy(db)
-	orderRepo := repository.NewOrderRepository(db)
-
-	h := &handler.Handler{
-		MenuHandler:  *handler.NewMenuHandler(menuRepo),
-		FoodHandler:  *handler.NewFoodHandler(foodRepo),
-		TableHandler: *handler.NewTableRepositroy(tableRepo),
-		OrderHandler: *handler.NewOrderHandler(orderRepo, tableRepo, foodRepo),
-	}
+	r := repository.NewRepository(db)
+	h := handler.NewHandler(r)
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	routes.RegisterRoutes(router, h)
+	cfg := &config.Config{JwtSecret: "secret"}
+	routes.RegisterRoutes(router, h, cfg)
 
 	testServer := httptest.NewServer(router)
 
@@ -67,10 +60,10 @@ func SetupApp(t *testing.T) (*TestApp, func()) {
 	return &TestApp{
 		Server:    testServer,
 		DB:        db,
-		MenuRepo:  menuRepo,
-		FoodRepo:  foodRepo,
-		TableRepo: tableRepo,
-		OrderRepo: orderRepo,
+		MenuRepo:  r.Menu,
+		FoodRepo:  r.Food,
+		TableRepo: r.Table,
+		OrderRepo: r.Order,
 	}, cleanup
 }
 

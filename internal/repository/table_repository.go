@@ -14,11 +14,11 @@ type TableRepository struct {
 	collection *mongo.Collection
 }
 
-func NewTableRepositroy(db *database.DBEngine) *TableRepository {
+func NewTableRepositroy(db *database.Database) *TableRepository {
 	return &TableRepository{
 		collection: db.GetCollection("tables"),
 	}
-} 
+}
 
 func (r *TableRepository) CreateTable(ctx context.Context, table *models.Table) error {
 	table.ReservedSeats = 0
@@ -26,43 +26,43 @@ func (r *TableRepository) CreateTable(ctx context.Context, table *models.Table) 
 
 	resp, err := r.collection.InsertOne(ctx, &table)
 	if err != nil {
-		return err 
+		return err
 	}
 	if objectId, ok := resp.InsertedID.(bson.ObjectID); ok {
 		table.ID = objectId
-	} 
-	return nil 
+	}
+	return nil
 }
 
 func (r *TableRepository) GetTableById(ctx context.Context, id string) (*models.Table, error) {
 	objectId, err := bson.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 	filter := bson.M{"_id": objectId}
-	var table models.Table 
+	var table models.Table
 
 	err = r.collection.FindOne(ctx, filter).Decode(&table)
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 
-	return &table, nil 
+	return &table, nil
 }
 
 func (r *TableRepository) GetAllTables(ctx context.Context) ([]*models.Table, error) {
 	filter := bson.M{}
 	cursor, err := r.collection.Find(ctx, filter)
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	var tables []*models.Table 
+	var tables []*models.Table
 	if err := cursor.All(ctx, &tables); err != nil {
-		return nil, err 
+		return nil, err
 	}
-	return tables, nil 
+	return tables, nil
 }
 
 // BookSeats atomically increments the reserved seats for a given table,
@@ -71,9 +71,9 @@ func (r *TableRepository) GetAllTables(ctx context.Context) ([]*models.Table, er
 func (r *TableRepository) BookSeats(ctx context.Context, tableId string, seats int) error {
 	objectId, err := bson.ObjectIDFromHex(tableId)
 	if err != nil {
-		return err 
+		return err
 	}
-	
+
 	// make sure seats are available
 	// capacity - reservedSeats >= seats
 	filter := bson.M{
@@ -81,7 +81,7 @@ func (r *TableRepository) BookSeats(ctx context.Context, tableId string, seats i
 		"$expr": bson.M{
 			"$gte": []interface{}{
 				bson.M{"$subtract": []string{"$capacity", "$reserved_seats"}},
-				seats, 
+				seats,
 			},
 		},
 	}
@@ -93,23 +93,23 @@ func (r *TableRepository) BookSeats(ctx context.Context, tableId string, seats i
 
 	res, err := r.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		return err 
+		return err
 	}
 	if res.MatchedCount == 0 {
 		return errors.New("table not found or insufficient capacity available")
 	}
-	return nil 
+	return nil
 }
 
 func (r *TableRepository) ReleaseSeats(ctx context.Context, tableId string, seatsToRelease int) error {
 	objectId, err := bson.ObjectIDFromHex(tableId)
 	if err != nil {
-		return err 
+		return err
 	}
 
 	// check reserved_seats >= seatsToRelease
 	filter := bson.M{
-		"_id": objectId,
+		"_id":            objectId,
 		"reserved_seats": bson.M{"$gte": seatsToRelease},
 	}
 
@@ -119,18 +119,18 @@ func (r *TableRepository) ReleaseSeats(ctx context.Context, tableId string, seat
 
 	res, err := r.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		return err 
+		return err
 	}
 	if res.MatchedCount == 0 {
 		return errors.New("table not found or invalid seatsToRealease sent")
 	}
-	return nil 
+	return nil
 }
 
 func (r *TableRepository) UpdateTableStatus(ctx context.Context, tableId string, tableStatus models.TableStatus) error {
-	objectId ,err := bson.ObjectIDFromHex(tableId)
+	objectId, err := bson.ObjectIDFromHex(tableId)
 	if err != nil {
-		return err 
+		return err
 	}
 
 	filter := bson.M{
@@ -142,5 +142,5 @@ func (r *TableRepository) UpdateTableStatus(ctx context.Context, tableId string,
 	}
 
 	_, err = r.collection.UpdateOne(ctx, filter, update)
-	return err 
+	return err
 }

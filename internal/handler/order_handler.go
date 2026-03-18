@@ -110,6 +110,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 
 	order := &models.Order{
 		TableID: table.ID,
+		UserID:  c.Request.Header.Get("X-User-Id"),
 		Status:  models.OrderStatusPending,
 		Items:   orderItems,
 	}

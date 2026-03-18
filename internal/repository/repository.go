@@ -9,11 +9,11 @@ type Repository struct {
 	Order *OrderRepository
 }
 
-func NewRepository(db *database.DBEngine) *Repository {
+func NewRepository(db *database.Database) *Repository {
 	return &Repository{
-		Food: NewFoodRepository(db),
+		Food:  NewFoodRepository(db),
 		Table: NewTableRepositroy(db),
-		Menu: NewMenuRepository(db),
+		Menu:  NewMenuRepository(db),
 		Order: NewOrderRepository(db),
 	}
 }

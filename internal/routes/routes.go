@@ -1,11 +1,13 @@
 package routes
 
 import (
+	"github.com/distroaryan/restaurant-management/internal/config"
 	"github.com/distroaryan/restaurant-management/internal/handler"
+	"github.com/distroaryan/restaurant-management/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(r *gin.Engine, handler *handler.Handler) {
+func RegisterRoutes(r *gin.Engine, handler *handler.Handler, cfg *config.Config) {
 	v1 := r.Group("/api/v1")
 
 	// Menus
@@ -24,6 +26,7 @@ func RegisterRoutes(r *gin.Engine, handler *handler.Handler) {
 
 	// Tables
 	tables := v1.Group("/tables")
+	tables.Use(middleware.Auth(cfg))
 	{
 		tables.GET("", handler.Table.GetAllTables)
 		tables.GET("/:tableId", handler.Table.GetTableById)
@@ -33,6 +36,7 @@ func RegisterRoutes(r *gin.Engine, handler *handler.Handler) {
 
 	// Order
 	orders := v1.Group("/orders")
+	orders.Use(middleware.Auth(cfg))
 	{
 		orders.GET("/:orderId", handler.Order.GetOrderById)
 		orders.POST("/create-order", handler.Order.CreateOrder)
