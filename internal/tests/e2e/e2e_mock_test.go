@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/distroaryan/restaurant-management/internal/models"
@@ -263,4 +265,93 @@ func TestRestaurantEndpoints(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	})
+}
+
+func TestConcurrentBooking_SameTable(t *testing.T) {
+	t.Log("🚀 Starting E2E Mock Test Suite...")
+	srv, cleanup := SetUpMockServer(t)
+	defer func() {
+		cleanup()
+		t.Log("🎉 Completed E2E Mock Test Suite!")
+	}()
+
+	users := 100
+
+	tableID := srv.TestData.Tables[0].ID.Hex()
+	bookTableRoute := srv.Server.URL + "/api/v1/tables" + fmt.Sprintf("/book-table/%s", tableID)
+
+	var requests []*http.Request
+	for i := range users {
+		testUserID := fmt.Sprintf("test-user-id-%d", i)
+		token := GenerateTestToken(testUserID)
+		reqAuthHeaderKey := "Authorization"
+		reqAuthHeaderValue := "Bearer " + token
+
+		req, err := http.NewRequest("POST", bookTableRoute, nil)
+		require.NoError(t, err)
+		req.Header.Set(reqAuthHeaderKey, reqAuthHeaderValue)
+		requests = append(requests, req)
+	}
+
+	var successCount atomic.Int32
+	var wg sync.WaitGroup
+
+	for i := range users {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			resp, err := http.DefaultClient.Do(requests[i])
+			if err == nil && resp.StatusCode == http.StatusOK {
+				successCount.Add(1)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	assert.Equal(t, int32(1), successCount.Load())
+}
+
+func TestConcurrentBooking_DifferentTable(t *testing.T) {
+	t.Log("🚀 Starting E2E Mock Test Suite...")
+	srv, cleanup := SetUpMockServer(t)
+	defer func() {
+		cleanup()
+		t.Log("🎉 Completed E2E Mock Test Suite!")
+	}()
+
+	users := 100
+	
+	var requests []*http.Request
+	for i := range users {
+		tableID := srv.TestData.Tables[i].ID.Hex()
+		bookTableRoute := srv.Server.URL + "/api/v1/tables" + fmt.Sprintf("/book-table/%s", tableID)
+		testUserID := fmt.Sprintf("test-user-id-%d", i)
+		token := GenerateTestToken(testUserID)
+		reqAuthHeaderKey := "Authorization"
+		reqAuthHeaderValue := "Bearer " + token
+
+		req, err := http.NewRequest("POST", bookTableRoute, nil)
+		require.NoError(t, err)
+		req.Header.Set(reqAuthHeaderKey, reqAuthHeaderValue)
+		requests = append(requests, req)
+	}
+
+	var successCount atomic.Int32
+	var wg sync.WaitGroup
+
+	for i := range users {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			resp, err := http.DefaultClient.Do(requests[i])
+			if err == nil && resp.StatusCode == http.StatusOK {
+				successCount.Add(1)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	assert.Equal(t, int32(10), successCount.Load())
 }

@@ -76,8 +76,8 @@ func seedDatabase(t *testing.T, s *Server) TestData {
 	t.Helper()
 	var data TestData
 
-	// Seed 2 Menus
-	for i := range 10 {
+	// Seed 100 Menus
+	for i := range 100 {
 		menu := &models.Menu{
 			Name:        fmt.Sprintf("Menu %d", i),
 			Description: fmt.Sprintf("Description %d", i),
@@ -99,7 +99,7 @@ func seedDatabase(t *testing.T, s *Server) TestData {
 		data.Foods = append(data.Foods, *food)
 	}
 
-	// Seed 10 Tables
+	// Seed 100 Tables
 	for i := range 10 {
 		table := &models.Table{
 			Name:   fmt.Sprintf("Table %d", i),
