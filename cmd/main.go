@@ -10,6 +10,7 @@ import (
 	"github.com/distroaryan/restaurant-management/internal/config"
 	"github.com/distroaryan/restaurant-management/internal/database"
 	"github.com/distroaryan/restaurant-management/internal/handler"
+	"github.com/distroaryan/restaurant-management/internal/observability"
 	"github.com/distroaryan/restaurant-management/internal/repository"
 	"github.com/distroaryan/restaurant-management/internal/server"
 )
@@ -19,6 +20,11 @@ func main() {
 	if err != nil {
 		panic("failed to load config " + err.Error())
 	}
+
+	shutdownTelemetry := observability.InitTelemetry()
+	defer func() {
+		_ = shutdownTelemetry(context.Background())
+	}()
 
 	// Initialize repository and handlers
 	db := database.Connect(cfg.MongoURI, cfg.DbName)

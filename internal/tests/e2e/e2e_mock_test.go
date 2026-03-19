@@ -353,5 +353,5 @@ func TestConcurrentBooking_DifferentTable(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int32(10), successCount.Load())
+	assert.Equal(t, int32(100), successCount.Load())
 }

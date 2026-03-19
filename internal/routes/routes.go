@@ -5,9 +5,17 @@ import (
 	"github.com/distroaryan/restaurant-management/internal/handler"
 	"github.com/distroaryan/restaurant-management/internal/middleware"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 func RegisterRoutes(r *gin.Engine, handler *handler.Handler, cfg *config.Config) {
+	// Observability Middleware
+	r.Use(otelgin.Middleware("restaurant-service"))
+
+	// Expose Prometheus Metrics Endpoint
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
 	v1 := r.Group("/api/v1")
 
 	// Menus

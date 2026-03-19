@@ -11,3 +11,6 @@ testsum-integration:
 
 testsum-e2e:
 	gotestsum --format testname -- -v ./internal/tests/e2e/...
+
+load-test:
+	k6 run scripts/load_test.js

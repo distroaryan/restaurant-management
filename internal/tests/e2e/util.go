@@ -100,7 +100,7 @@ func seedDatabase(t *testing.T, s *Server) TestData {
 	}
 
 	// Seed 100 Tables
-	for i := range 10 {
+	for i := range 100 {
 		table := &models.Table{
 			Name:   fmt.Sprintf("Table %d", i),
 			Status: models.TableStatusAvailable,
