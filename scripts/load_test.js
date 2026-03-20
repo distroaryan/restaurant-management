@@ -10,7 +10,7 @@ export const options = {
 };
 
 export default function () {
-  const url = 'http://localhost:8000/api/v1/menus'; // Adjust port if needed
+  const url = 'http://localhost:8080/api/v1/menus'; // Adjust port if needed
   const res = http.get(url);
   
   check(res, {

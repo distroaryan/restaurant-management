@@ -5,4 +5,4 @@ scrape_configs:
   - job_name: 'restaurant-service'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['host.docker.internal:8000'] # Assuming Gin default port 8000, modify if app uses different port
+      - targets: ['host.docker.internal:8080'] # Assuming Gin default port 8000, modify if app uses different port
